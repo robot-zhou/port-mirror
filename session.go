@@ -134,7 +134,7 @@ func (sess *Session) ConnectTarget() error {
 func (sess *Session) DownConnRoutine() {
 
 	SessionIncCount()
-	log.Infof("[%s] start session remote(%s)->local(%s) target %s, session count(%d)", sess.Id, sess.DownConn.RemoteAddr().String(), sess.DownConn.LocalAddr().String(), sess.MirrorConfig.Target, SessionCount)
+	log.Infof("[%s] start session client(%s)->local(%s) target %s, session count(%d)", sess.Id, sess.DownConn.RemoteAddr().String(), sess.DownConn.LocalAddr().String(), sess.MirrorConfig.Target, SessionCount)
 
 	if err := sess.ConnectTarget(); err != nil {
 		SessionDecCount()
