@@ -116,10 +116,14 @@ func (sess *Session) UpConnRoutine() {
 
 func (sess *Session) ConnectTarget() error {
 	var (
-		err              error
-		dailer           proxy.Dialer
-		network, address string = ParseConfigAddress(sess.MirrorConfig.Target)
+		err    error
+		dailer proxy.Dialer
+		addr   *Addr
 	)
+
+	if addr, err = Url2Addr(sess.MirrorConfig.Target); err != nil {
+		return err
+	}
 
 	proxys := SplitStringTrim(sess.MirrorConfig.Proxy)
 
@@ -127,7 +131,7 @@ func (sess *Session) ConnectTarget() error {
 		dailer = proxy.Direct
 	}
 
-	sess.UpConn, err = dailer.Dial(network, address)
+	sess.UpConn, err = dailer.Dial("tcp", addr.String())
 	return err
 }
 

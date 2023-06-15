@@ -13,14 +13,15 @@ type Server struct {
 func NewServer(mc MirrorConfig) (*Server, error) {
 	var (
 		err      error
-		network  string
-		address  string
+		addr     net.Addr
 		listener net.Listener
 	)
 
-	network, address = ParseConfigAddress(mc.Local)
+	if addr, err = Url2Addr(mc.Local, "tcp"); err != nil {
+		return nil, err
+	}
 
-	if listener, err = net.Listen(network, address); err != nil {
+	if listener, err = net.Listen("tcp", addr.String()); err != nil {
 		return nil, err
 	}
 

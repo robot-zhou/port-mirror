@@ -3,7 +3,6 @@ package main
 import (
 	"encoding/json"
 	"os"
-	"strings"
 )
 
 const (
@@ -75,31 +74,4 @@ func LoadConfig(a ...string) error {
 	}
 
 	return err
-}
-
-func ParseConfigAddress(s string) (string, string) {
-	var (
-		network string
-		address string
-	)
-
-	if pos := strings.Index(s, "://"); pos != -1 {
-		network = s[0:pos]
-		address = s[pos+3:]
-	} else {
-		address = s
-	}
-
-	if pos := strings.Index(address, "/"); pos != -1 {
-		address = address[0:pos]
-	}
-
-	network = strings.Trim(network, "\t\n ")
-	address = strings.Trim(address, "\t\n ")
-
-	if network == "" {
-		network = "tcp"
-	}
-
-	return network, address
 }

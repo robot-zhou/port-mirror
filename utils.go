@@ -2,7 +2,10 @@ package main
 
 import (
 	"math/rand"
+	"net"
+	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -44,4 +47,53 @@ func SplitStringTrim(a string, f ...string) []string {
 	}
 
 	return res
+}
+
+type Addr struct {
+	Name string
+	Host string
+	Port int
+}
+
+func (adr *Addr) Network() string {
+	if adr == nil {
+		return "<nil>"
+	}
+	return adr.Name
+}
+
+func (adr *Addr) String() string {
+	if adr == nil {
+		return "<nil>"
+	}
+
+	return net.JoinHostPort(adr.Host, strconv.Itoa(adr.Port))
+}
+
+func (adr *Addr) PortString() string {
+	return ":" + strconv.Itoa(adr.Port)
+}
+
+func Url2Addr(a string, defNetwork ...string) (*Addr, error) {
+	u, err := url.Parse(a)
+	if err != nil {
+		return nil, err
+	}
+
+	host, portstr, err := net.SplitHostPort(u.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	port, err := strconv.Atoi(portstr)
+	if err != nil {
+		return nil, &net.AddrError{Addr: u.Host, Err: "invalid port number"}
+	}
+
+	adr := &Addr{Name: u.Scheme, Host: host, Port: port}
+	if adr.Name == "" && len(defNetwork) > 0 {
+		adr.Name = defNetwork[0]
+	}
+
+	return adr, nil
 }
