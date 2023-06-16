@@ -2,7 +2,10 @@ package main
 
 import (
 	"math/rand"
+	"net"
+	"net/url"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -44,4 +47,51 @@ func SplitStringTrim(a string, f ...string) []string {
 	}
 
 	return res
+}
+
+type UrlAddr struct {
+	Url         *url.URL
+	DefaultPort int
+}
+
+func (adr *UrlAddr) Network() string {
+	return adr.Url.Scheme
+}
+
+func (adr *UrlAddr) String() string {
+	if adr.Url.Port() == "" && adr.DefaultPort > 0 {
+		return adr.Url.Hostname() + ":" + strconv.Itoa(adr.DefaultPort)
+	}
+	return adr.Url.Host
+}
+
+func (adr *UrlAddr) PortString() string {
+	if adr.Url.Port() == "" && adr.DefaultPort > 0 {
+		return ":" + strconv.Itoa(adr.DefaultPort)
+	}
+	return ":" + adr.Url.Port()
+}
+
+func ParseUrlAddr(a string) (*UrlAddr, error) {
+
+	re := regexp.MustCompile(`^[a-zA-z][a-zA-Z0-9]*://`)
+	if re.FindString(a) == "" {
+		a = "//" + a
+	}
+
+	urlobj, err := url.Parse(a)
+	if err != nil {
+		return nil, &net.AddrError{Addr: a, Err: "invald url:" + err.Error()}
+	}
+
+	host, port, err := net.SplitHostPort(urlobj.Host)
+	if err != nil {
+		return nil, err
+	}
+
+	if host == "" && port == "" {
+		return nil, &net.AddrError{Addr: a, Err: "invalid host or port"}
+	}
+
+	return &UrlAddr{Url: urlobj}, nil
 }

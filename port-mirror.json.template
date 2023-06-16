@@ -1,0 +1,7 @@
+{
+    "mirrors":[{
+        "local":":10080",
+        "target":"www.baidu.com:80",
+        "proxy":"socks://localhost:1080,http://localhost:8080"
+    }]
+}

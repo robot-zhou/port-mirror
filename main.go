@@ -6,14 +6,15 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	log "github.com/sirupsen/logrus"
 )
 
 var (
 	opt_config_file = flag.String("conf", DefautlConfigFile, "configuration file")
-	opt_log_level   = flag.String("log_level", "", "log level")
-	opt_log_file    = flag.String("log_file", "", "log output file, val: stdout, <file nam>")
+	opt_log_level   = flag.String("log", "", "log level")
+	opt_log_file    = flag.String("log-output", "", "log output file, val: stdout, <file nam>")
 )
 
 func load_config() {
@@ -60,6 +61,7 @@ func load_config() {
 	}
 
 	log.SetLevel(logLevel)
+	log.SetFormatter(&log.TextFormatter{FullTimestamp: true, DisableColors: false, TimestampFormat: time.DateTime})
 }
 
 func runSignalLoop() {

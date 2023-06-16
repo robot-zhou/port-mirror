@@ -1,9 +1,11 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"io"
 	"net"
+	"net/url"
 	"os"
 	"sync"
 	"time"
@@ -116,18 +118,62 @@ func (sess *Session) UpConnRoutine() {
 
 func (sess *Session) ConnectTarget() error {
 	var (
-		err              error
-		dailer           proxy.Dialer
-		network, address string = ParseConfigAddress(sess.MirrorConfig.Target)
+		err  error
+		addr *UrlAddr
 	)
 
-	proxys := SplitStringTrim(sess.MirrorConfig.Proxy)
-
-	if len(proxys) == 0 {
-		dailer = proxy.Direct
+	if addr, err = ParseUrlAddr(sess.MirrorConfig.Target); err != nil {
+		return err
 	}
 
-	sess.UpConn, err = dailer.Dial(network, address)
+	proxyConfigs := SplitStringTrim(sess.MirrorConfig.Proxy)
+	if len(proxyConfigs) > 0 {
+
+		for _, cfg := range proxyConfigs {
+			var (
+				conn   net.Conn
+				dailer proxy.Dialer
+			)
+
+			if cfg == "direct" {
+				dailer = proxy.Direct
+			} else {
+				u, err := url.Parse(cfg)
+				if err != nil {
+					log.Errorf("[%s] proxy %s error: %s", sess.Id, cfg, err.Error())
+					continue
+				}
+				dailer, err = proxy.FromURL(u, proxy.Direct)
+				if err != nil {
+					log.Errorf("[%s] proxy %s create dailer error: %s", sess.Id, cfg, err.Error())
+					continue
+				}
+			}
+
+			if dd, ok := dailer.(proxy.ContextDialer); ok {
+				ctx, cancel := context.WithTimeout(context.TODO(), time.Duration(sess.MirrorConfig.ReadTimeout)*time.Second)
+				defer cancel()
+				conn, err = dd.DialContext(ctx, "tcp", addr.String())
+			} else {
+				conn, err = dailer.Dial("tcp", addr.String())
+			}
+
+			if err != nil {
+				log.Errorf("[%s] proxy %s connect %s error: %s", sess.Id, cfg, addr.String(), err.Error())
+				continue
+			}
+
+			sess.UpConn = conn
+			log.Infof("[%s] proxy %s connect %s local(%s)->target(%s) success", sess.Id, cfg, addr.String(), sess.UpConn.LocalAddr().String(), sess.UpConn.RemoteAddr().String())
+			return nil
+		}
+
+		log.Errorf("[%s] all proxy connect %s fail", sess.Id, addr.String())
+		return errors.New("all proxy connect fail")
+
+	}
+
+	sess.UpConn, err = proxy.Direct.Dial("tcp", addr.String())
 	return err
 }
 
@@ -139,7 +185,7 @@ func (sess *Session) DownConnRoutine() {
 	if err := sess.ConnectTarget(); err != nil {
 		SessionDecCount()
 		sess.DownConn.Close()
-		log.Errorf("[%s] session exit, dail %s fail: %v, session count(%d)", sess.Id, sess.MirrorConfig.Target, err, SessionCount)
+		log.Errorf("[%s] session exit, connect %s fail: %v, session count(%d)", sess.Id, sess.MirrorConfig.Target, err, SessionCount)
 		return
 	} else {
 		log.Infof("[%s] connect local(%s)->target(%s) success", sess.Id, sess.UpConn.LocalAddr().String(), sess.UpConn.RemoteAddr().String())
