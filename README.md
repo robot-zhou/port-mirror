@@ -20,7 +20,8 @@ go build
 #### 使用说明
 
 ##### 启动命令
-./port-mirror
+./port-mirror   
+**注意： 仅仅支持IPv4, 测试时请注意机器名的解析，有些启用IPV6的机器，localhost机器名解析为IPv6地址**
 
 ##### 配置文件
 默认路径: /etc/port-mirror.json
